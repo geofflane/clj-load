@@ -44,10 +44,9 @@
 (defn- process-results
   [start strat results]
   (let [durations (vec (map :duration results))
-        success-cnt (count (remove #(error? strat %) results))
-        failure-cnt (count (filter #(error? strat %) results))]
-    {:success success-cnt
-     :failure failure-cnt
+        {successes false failures true} (group-by #(error? strat %) results)]
+    {:success (count successes)
+     :failure (count failures)
      :min (apply min durations)
      :max (apply max durations)
      :mean (avg durations)

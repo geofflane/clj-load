@@ -21,8 +21,8 @@
   Strategy
   (testfn [_ lt]
     (do
-      (Thread/sleep 1000)
-      (print ".")
+      ;; (Thread/sleep 10)
+      ;; (print ".")
       {:body "body" :status 200}))
   (error? [_ r] (>= (:status r) 400)))
 
