@@ -6,7 +6,7 @@
   Strategy
   (testfn [_ lt]
     (do
-      (Thread/sleep 1000)
+      (Thread/sleep 100)
       (print ".")
       {:body "body" :status 200}))
   (error? [_ r] (>= (:status r) 400)))
