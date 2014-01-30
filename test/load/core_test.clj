@@ -16,17 +16,22 @@
     (is (= 2 (median [1 2 3])))
     (is (= 2.0 (median [2 2])))))
 
-(defn funx [lt]
-  (do
-    (Thread/sleep 1000)
-    (print ".")
-    {:body "body" :status 200}))
+
+(defrecord TestStrategy []
+  Strategy
+  (testfn [_ lt]
+    (do
+      (Thread/sleep 1000)
+      (print ".")
+      {:body "body" :status 200}))
+  (error? [_ r] (>= (:status r) 400)))
+
 
 (deftest running-all
   (testing "can run all the things"
     (let [lt {:count 100 :concurrent 10}
-          error? (fn [r] (>= (:status r) 400))
-          results (run-all lt funx error?)]
+          strat (->TestStrategy)
+          results (run-all lt strat)]
       (is (not (nil? (:mean results))))
       (is (not (nil? (:median results))))
       (is (not (nil? (:max results))))

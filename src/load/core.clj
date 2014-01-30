@@ -2,16 +2,9 @@
   (:require [clojure.contrib.math :as math]
             [clojure.core.async :refer (chan >!! <!! >! <! close! go go-loop timeout alt!)]))
 
-(defprotocol LoadTest
-  (execute [this func] "Execute the function and return a Result"))
-
-(extend-type clojure.lang.PersistentArrayMap
-  LoadTest
-  (execute [this func]
-    (let [start (System/currentTimeMillis)
-          result (func this)
-          dur (- (System/currentTimeMillis) start)]
-      (assoc result :duration dur))))
+(defprotocol Strategy
+  (testfn [this lt] "Run the load test")
+  (error? [this result] "Is this result an error?"))
 
 (defn avg
   "Statistical mean calculation"
@@ -41,11 +34,18 @@
                   start (dec end)]
               (avg (subvec intervals start (inc end)))))))
 
+(defn execute [lt strat]
+  "Execute the load test"
+  (let [start (System/currentTimeMillis)
+        result (testfn strat lt)
+        dur (- (System/currentTimeMillis) start)]
+    (assoc result :duration dur)))
+
 (defn- process-results
-  [start errorfunc results]
+  [start strat results]
   (let [durations (vec (map :duration results))
-        success-cnt (count (remove errorfunc results))
-        failure-cnt (count (filter errorfunc results))]
+        success-cnt (count (remove #(error? strat %) results))
+        failure-cnt (count (filter #(error? strat %) results))]
     {:success success-cnt
      :failure failure-cnt
      :min (apply min durations)
@@ -56,7 +56,8 @@
      :elapsed (- (System/currentTimeMillis) start)}))
 
 (def results (atom []))
-(defn run-all [load-test func errorfunc]
+(defn run-all [load-test strat]
+  "Run the load test repeatedly"
   (let [result-chan (chan)
         run-chan (chan (:concurrent load-test))
         start (System/currentTimeMillis)]
@@ -65,7 +66,7 @@
       (when (pos? count)
         (go
           (>! run-chan 1)
-          (>! result-chan (execute load-test func))
+          (>! result-chan (execute load-test strat))
           (<! run-chan)) ;; This pops off the run chan to allow another to push on
         (recur (dec count))))
     (<!!
@@ -76,7 +77,7 @@
           (flush) ;; make sure anything written in func is flushed out
           (recur (dec count)))))
 
-    (process-results start errorfunc @results)))
+    (process-results start strat @results)))
 
 (defn print-results [results]
   (println "")
