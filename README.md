@@ -6,7 +6,7 @@ A Clojure library using core.async for running concurrent processes repeatedly.
 
 Example of running an action repeatedly and concurrently
 
-```
+```clojure
 ;; Implement the Strategy protocol for executing a single test
 ;; and determining if the results from that execution are and error or not.
 (defrecord GetStrategy [url]
