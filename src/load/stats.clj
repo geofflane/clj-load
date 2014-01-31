@@ -1,4 +1,5 @@
-(ns load.stats
+(ns ^{:doc "Statistical functions"}
+  load.stats
   (:refer-clojure :exclude [min max])
   (:require [clojure.contrib.math :as math]))
 

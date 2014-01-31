@@ -1,17 +1,14 @@
-(ns load.core
+(ns ^{:doc "Main algorithms for running things concurrently"}
+  load.core
   (:refer-clojure :exclude [min max])
   (:require [load.stats :refer (avg median std-dev timed min max)]
+            [load.strategy :refer :all]
             [clojure.core.async :refer (chan >!! <!! >! <! close! go go-loop timeout alt!)]))
 
-(defprotocol Strategy
-  "Protocol needed for running load tests and calculating the results"
-  (testfn [this lt] "Run the load test")
-  (error? [this result] "Is this result an error?"))
-
 (defn execute [lt strat]
-  "Execute the load test"
+  "Execute a single run of the load test"
   (timed [result duration]
-         (testfn strat lt)
+         (exec strat lt)
          (assoc result :duration duration)))
 
 (defn- process-results
@@ -29,7 +26,7 @@
 
 (def results (atom []))
 (defn run-all [load-test strat]
-  "Run the load test repeatedly
+  "Run the load test repeatedly and concurrently
    Results come out in a map like:
    {:success 10
      :failure 1

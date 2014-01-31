@@ -1,16 +1,7 @@
 (ns load.core-test
   (:require [clojure.test :refer :all]
-            [load.core :refer :all]))
-
-(defrecord TestStrategy []
-  Strategy
-  (testfn [_ lt]
-    (do
-      ;; (Thread/sleep 10)
-      ;; (print ".")
-      {:body "body" :status 200}))
-  (error? [_ r] (>= (:status r) 400)))
-
+            [load.core :refer :all]
+            [load.strategies.test :refer :all]))
 
 (deftest running-all
   (testing "can run all the things"
