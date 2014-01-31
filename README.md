@@ -27,6 +27,18 @@ Example of running an action repeatedly and concurrently
         strat (->GetStrategy "http://example.com")
         ;; Run everything and get the statistics back
         statistics (run-all lt strat)]
+
+;; Statistics come back in a Map:
+;;   {:success 10
+;;     :failure 1
+;;     :min 100
+;;     :max 1000
+;;     :mean 500
+;;     :median 500
+;;     :std-dev 15
+;;     :elapsed 10000}
+
+;; Handy function to print out the results
     (print-results statistics)))
 ```
 
