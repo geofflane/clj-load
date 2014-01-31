@@ -1,5 +1,5 @@
 (ns load.core
-  (:require [load.stats :refer (avg median std-dev)]
+  (:require [load.stats :refer (avg median std-dev timed)]
             [clojure.core.async :refer (chan >!! <!! >! <! close! go go-loop timeout alt!)]))
 
 (defprotocol Strategy
@@ -9,13 +9,12 @@
 
 (defn execute [lt strat]
   "Execute the load test"
-  (let [start (System/currentTimeMillis)
-        result (testfn strat lt)
-        dur (- (System/currentTimeMillis) start)]
-    (assoc result :duration dur)))
+  (timed [result duration]
+         (testfn strat lt)
+         (assoc result :duration duration)))
 
 (defn- process-results
-  [start strat results]
+  [total strat results]
   (let [durations (vec (map :duration results))
         {successes false failures true} (group-by #(error? strat %) results)]
     {:success (count successes)
@@ -25,7 +24,7 @@
      :mean (avg durations)
      :median (median durations)
      :std-dev (std-dev durations)
-     :elapsed (- (System/currentTimeMillis) start)}))
+     :elapsed total}))
 
 (def results (atom []))
 (defn run-all [load-test strat]
@@ -38,28 +37,27 @@
      :mean 500
      :median 500
      :std-dev 15
-     :elapsed 10000}
-  "
+     :elapsed 10000}"
   (let [result-chan (chan)
-        run-chan (chan (:concurrent load-test))
-        start (System/currentTimeMillis)]
-    (go-loop
-      [count (:count load-test)]
-      (when (pos? count)
-        (go
-          (>! run-chan 1)
-          (>! result-chan (execute load-test strat))
-          (<! run-chan)) ;; This pops off the run chan to allow another to push on
-        (recur (dec count))))
-    (<!!
-      (go-loop
-        [count (:count load-test)]
-        (when (pos? count)
-          (swap! results conj (<! result-chan))
-          (flush) ;; make sure anything written in func is flushed out
-          (recur (dec count)))))
-
-    (process-results start strat @results)))
+        run-chan (chan (:concurrent load-test))]
+    (timed [_ duration]
+           (do
+             (go-loop
+               [count (:count load-test)]
+               (when (pos? count)
+                 (go
+                   (>! run-chan 1)
+                   (>! result-chan (execute load-test strat))
+                   (<! run-chan)) ;; This pops off the run chan to allow another to push on
+                 (recur (dec count))))
+             (<!!
+               (go-loop
+                 [count (:count load-test)]
+                 (when (pos? count)
+                   (swap! results conj (<! result-chan))
+                   (flush) ;; make sure anything written in func is flushed out
+                   (recur (dec count))))))
+           (process-results duration strat @results))))
 
 (defn print-results [results]
   "Pretty print the results"

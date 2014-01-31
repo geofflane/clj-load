@@ -1,6 +1,13 @@
 (ns load.stats
   (:require [clojure.contrib.math :as math]))
 
+(defmacro timed
+  [[result duration] body after]
+  `(let [start# (System/currentTimeMillis)
+         ~result ~body]
+     (let [~duration (- (System/currentTimeMillis) start#)]
+       ~after)))
+
 (defn avg
   "Statistical mean calculation"
   [intervals]
