@@ -1,5 +1,6 @@
 (ns load.core
-  (:require [load.stats :refer (avg median std-dev timed)]
+  (:refer-clojure :exclude [min max])
+  (:require [load.stats :refer (avg median std-dev timed min max)]
             [clojure.core.async :refer (chan >!! <!! >! <! close! go go-loop timeout alt!)]))
 
 (defprotocol Strategy
@@ -19,8 +20,8 @@
         {successes false failures true} (group-by #(error? strat %) results)]
     {:success (count successes)
      :failure (count failures)
-     :min (apply min durations)
-     :max (apply max durations)
+     :min (min durations)
+     :max (max durations)
      :mean (avg durations)
      :median (median durations)
      :std-dev (std-dev durations)
